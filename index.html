@@ -1,0 +1,1514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f8f6ed">
+<title>星宝岛探险</title>
+<style>
+:root {
+  color-scheme: light;
+  --paper: #f8f6ed;
+  --card: #fffdf6;
+  --ink: #143934;
+  --muted: #4f675e;
+  --green: #19534a;
+  --line: #e5e2d3;
+  --mint: #e8f3e6;
+  --gold: #ffe297;
+  --shadow: 0 12px 36px #344f3d0b;
+  font: 16px/1.55 "Nunito", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, summary:focus-visible { outline: 3px solid #a04d13; outline-offset: 3px; }
+button:disabled { cursor: default; }
+[hidden] { display: none !important; }
+.wrap { width: min(1280px, calc(100% - 64px)); margin-inline: auto; }
+.top { border-bottom: 1px solid var(--line); background: #fffdf7; }
+.top .wrap { min-height: 68px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 900; letter-spacing: .035em; white-space: nowrap; }
+.brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: #ffe396; background: #214f45; font-size: 26px; line-height: 1; }
+.actions { display: flex; gap: 8px; }
+.outline { min-height: 42px; padding: 7px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-size: 14px; font-weight: 750; white-space: nowrap; }
+.outline:hover { background: var(--mint); }
+.sound-toggle { display: flex; align-items: center; gap: 5px; }
+.sound-toggle[aria-pressed="false"] { color: var(--muted); }
+.sound-icon { font-size: 16px; line-height: 1; }
+.brief { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding-block: 29px 23px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(31px, 4vw, 51px); letter-spacing: -.055em; line-height: 1.15; font-weight: 950; }
+.mission { margin-top: 8px; color: var(--muted); font-size: 15px; }
+.mission b { color: var(--green); }
+.level-picker { display: grid; gap: 3px; min-width: 145px; text-align: left; }
+.level-picker small { color: var(--muted); font-size: 12px; }
+.lesson { margin-bottom: 3px; color: var(--green); font-size: 13px; font-weight: 850; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(296px, .43fr); align-items: start; gap: 18px; }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
+.map-panel { overflow: hidden; }
+.panel-head { padding: 13px 19px; min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+h2 { font-size: 19px; line-height: 1.35; font-weight: 900; }
+.map-where { font-size: 13px; color: var(--green); font-weight: 750; }
+.map { position: relative; aspect-ratio: 900 / 504; overflow: hidden; background: #6bb8b5; isolation: isolate; }
+.map canvas, .map-nodes { position: absolute; width: 100%; height: 100%; inset: 0; }
+.node { position: absolute; transform: translate(-50%, -50%); border: 0; background: transparent; padding: 0; display: grid; justify-items: center; align-items: center; }
+.node-icon { position: relative; width: clamp(42px, 5vw, 55px); aspect-ratio: 1; display: grid; place-items: center; font-size: clamp(20px, 3vw, 29px); border: 2px solid #fff4cf; border-radius: 50%; background: #f9edd0; box-shadow: 0 5px 0 #254b466e, 0 7px 15px #1d594839; }
+.node.next .node-icon { background: #fff9e4; outline: 3px solid #ffe292; outline-offset: 2px; }
+.node.next:hover .node-icon, .node.chosen .node-icon { background: #ffe292; outline: 3px solid #fff5c5; outline-offset: 3px; }
+.node.current .node-icon { background: #1f5c4f; outline: 3px solid #fff5c5; outline-offset: 3px; }
+.node.visited .node-icon { background: #d9eac8; }
+.node.locked .node-icon { background: #e3dcbf; }
+.node-label { position: absolute; top: calc(100% + 6px); font-size: 13px; line-height: 1.25; font-weight: 900; white-space: nowrap; padding: 3px 7px; border-radius: 6px; color: #fffdf1; background: #284c3e; }
+.node.next .node-label, .node.chosen .node-label { color: #2e3925; background: #fff1bf; }
+.node-flag { position: absolute; top: -13px; right: -8px; color: #244631; background: #ffdb76; border-radius: 6px; font-size: 10px; font-weight: 900; padding: 2px 5px; white-space: nowrap; }
+.node.awake .node-icon { animation: hop .4s ease-out; }
+@keyframes hop { 40% { transform: translateY(-10px) rotate(-8deg); } }
+.legend { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 7px 16px; padding: 12px 18px; }
+.legend-list { display: flex; flex-wrap: wrap; gap: 6px 15px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.legend-list li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend i { display: inline-block; width: 19px; border-top: 3px dashed #986216; }
+.legend i.done { border-top: 3px solid #236654; }
+.weather { font-size: 13px; font-weight: 800; color: #4c654d; }
+.sidebar { display: grid; gap: 13px; }
+.stats { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 12px 7px; }
+.stats.timed { grid-template-columns: 1fr 1fr .85fr 1fr; }
+.stat { display: grid; justify-items: center; border-right: 1px solid var(--line); min-width: 0; }
+.stat:last-child { border: 0; }
+.stat > span { font-size: 13px; color: var(--muted); }
+.stat strong { font-size: 21px; font-weight: 950; font-variant-numeric: tabular-nums; }
+.stat strong span { color: var(--muted); font-size: 12px; font-weight: 700; }
+.stat #wallet { font-size: clamp(13px, 1.65vw, 21px); white-space: nowrap; }
+.routes { padding: 17px; }
+.kicker { font-size: 13px; margin: 4px 0 12px; color: var(--muted); }
+.route-list { display: grid; gap: 8px; }
+.route { width: 100%; min-height: 61px; display: grid; grid-template-columns: 35px minmax(0, 1fr) 20px; align-items: start; gap: 7px 9px; border: 1px solid #e5e0d1; padding: 10px; border-radius: 12px; background: #fbf8ee; text-align: left; }
+.route[aria-pressed="true"] { border-color: #ab741d; background: #fff0bd; box-shadow: inset 0 0 0 1px #ab741d; }
+.route:hover { border-color: #966525; }
+.route-icon { display: grid; place-items: center; min-width: 35px; height: 35px; border-radius: 9px; background: #fffdf6; font-size: 21px; }
+.route-content { min-width: 0; }
+.route-content strong { display: block; font-size: 14px; font-weight: 900; }
+.route-content small { display: block; color: #4d6559; font-size: 12px; }
+.route-check { display: grid; place-items: center; width: 19px; height: 19px; border: 1px solid #8d8a72; border-radius: 50%; color: transparent; font-size: 12px; font-weight: 900; }
+.route[aria-pressed="true"] .route-check { color: white; background: var(--green); border-color: var(--green); }
+.fare-parts { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 4px; }
+.fare-part { padding: 2px 6px; border: 1px solid #ded7c3; border-radius: 6px; background: #fffdf5; font-size: 12px; font-weight: 750; }
+.fare-part.discount { color: #1d5e44; border-color: #b4ceb2; background: #e9f3e5; }
+.fare-part.time { color: #244c58; border-color: #c5dadd; background: #eff6f6; }
+.route-message { margin-top: 9px; color: #943b26; font-size: 13px; }
+.route-message:empty { display: none; }
+.gear { min-height: 44px; display: flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 13px; }
+.gear input { width: 17px; height: 17px; accent-color: var(--green); }
+.primary { width: 100%; min-height: 45px; border: 1px solid transparent; border-radius: 11px; margin-top: 9px; padding: 10px 12px; background: var(--green); color: #fffef6; font-size: 15px; font-weight: 900; }
+.primary:hover { background: #286a5e; }
+.primary:disabled { background: #e8e9df; color: #57665b; }
+.coach { padding: 12px 14px; display: flex; gap: 9px; background: #e8f0e1; border-color: #d5e4d0; }
+.coach-icon { font-size: 23px; line-height: 1.35; }
+.coach h2 { font-size: 14px; margin-bottom: 3px; }
+.coach p { font-size: 13px; color: #435c50; }
+.journal { margin-block: 17px 30px; padding: 11px 18px; }
+.journal summary { min-height: 34px; display: list-item; cursor: pointer; font-size: 14px; font-weight: 850; line-height: 34px; }
+.journal summary span { float: right; color: var(--muted); font-weight: 650; }
+.journal ul { margin: 4px 0 6px; padding-left: 21px; color: var(--muted); font-size: 14px; }
+.journal li + li { margin-top: 6px; }
+dialog { width: min(470px, calc(100% - 28px)); max-height: calc(100% - 28px); border-radius: 19px; border: 1px solid var(--line); padding: 22px; color: var(--ink); background: var(--card); box-shadow: 0 15px 60px #112f3855; }
+dialog::backdrop { background: #162e2bb5; }
+dialog h2 { font-size: 25px; }
+dialog p, dialog ol { margin-top: 10px; color: var(--muted); font-size: 15px; }
+dialog ol { padding-left: 21px; }
+dialog li + li { margin-top: 9px; }
+.dialog-actions { display: flex; gap: 8px; margin-top: 16px; }
+.dialog-actions button { flex: 1; margin-top: 0; }
+.result-emoji { font-size: 43px; }
+.result-tip { padding: 10px 12px; border-radius: 10px; background: var(--mint); }
+.result-actions { flex-wrap: wrap; }
+.level-chapter { margin-top: 13px; }
+.level-chapter h3 { font-size: 14px; }
+.level-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 5px; }
+.level { min-height: 48px; padding: 4px 3px; border: 1px solid var(--line); border-radius: 8px; background: #faf7ed; font-size: 13px; font-weight: 850; }
+.level span { display: block; font-size: 10px; color: var(--muted); }
+.level[aria-current="true"] { border: 2px solid var(--green); background: var(--mint); }
+.level:hover { background: var(--mint); }
+#payment-dialog { width: min(570px, calc(100% - 20px)); padding: 0; }
+.cashier-top { padding: 15px 19px; color: #fff6e1; background: #174d43; }
+.cashier-top p { margin: 0 0 3px; color: #cee5d7; font-size: 12px; font-weight: 800; }
+.cashier-body { padding: 12px 18px 0; }
+.cashier-footer { position: sticky; bottom: 0; z-index: 2; padding: 9px 18px 13px; background: #fffdf6; border-top: 1px solid var(--line); }
+.cashier-footer .dialog-actions { margin: 0; }
+.receipt { display: grid; gap: 7px; padding: 10px 12px; border: 1px solid #e7ddc5; border-radius: 10px; background: #fbf4e1; font-size: 13px; }
+.receipt .fare-parts { grid-column: auto; }
+.receipt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 9px; }
+.receipt-row strong { font-size: 12px; }
+.payment-question { color: var(--ink); font-weight: 800; }
+.money-rack { display: flex; flex-wrap: wrap; gap: 9px; margin-block: 7px 10px; }
+.cash-piece { display: grid; place-items: center; position: relative; isolation: isolate; min-width: 48px; min-height: 48px; padding: 0 7px; font-size: 16px; font-weight: 950; }
+.cash-piece::before { content: ""; position: absolute; inset: 4px; border: 1px dashed currentColor; border-radius: inherit; opacity: .42; z-index: -1; }
+.cash-piece[data-cash="coin"] { border: 2px solid #ae7424; border-radius: 50%; background: radial-gradient(circle at 31% 24%, #fff4b1, #edb94e); color: #513a18; box-shadow: 0 3px 0 #a96b28; }
+.cash-piece[data-cash="silver"] { border: 2px solid #7e8990; border-radius: 50%; background: radial-gradient(circle at 31% 24%, #f1f7f8, #aabcc1); color: #22383b; box-shadow: 0 3px 0 #788789; }
+.cash-piece[data-cash="note"] { min-width: 68px; border: 2px solid #5d8968; border-radius: 8px; background: repeating-linear-gradient(133deg, #dcead6, #dcead6 4px, #e8f2e2 5px, #e8f2e2 8px); color: #264d35; box-shadow: 0 3px 0 #53795a; }
+button.cash-piece:hover { filter: brightness(1.045); }
+button.cash-piece:active { transform: translateY(3px) scale(.94); box-shadow: none; }
+.cash-piece.picked { animation: picked .25s ease-out; }
+.tray-stack.new { animation: deposit .34s cubic-bezier(.16, .9, .37, 1.4); }
+@keyframes picked { 35% { transform: translateY(2px) scale(.89); filter: brightness(1.2); } }
+@keyframes deposit { from { opacity: .1; transform: translateY(-13px) scale(.74); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.tray { min-height: 78px; padding: 9px; border: 2px solid #b5cfbb; border-radius: 12px; background: repeating-linear-gradient(120deg, #dceadf, #dceadf 7px, #e0ede3 7px, #e0ede3 14px); box-shadow: inset 0 2px 6px #315d4038; display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.tray p { margin: 0; font-size: 13px; }
+.tray-stack { display: flex; align-items: center; gap: 4px; }
+.tray-stack .cash-piece { min-width: 41px; min-height: 41px; font-size: 13px; }
+.tray-stack .cash-piece[data-cash="note"] { min-width: 53px; }
+.tray-stack small { min-width: 24px; padding: 1px 4px; border-radius: 5px; font-size: 12px; font-weight: 900; background: #174d43; color: white; }
+.money-entry { border: 0; padding: 0; margin: 12px 0; }
+.money-entry legend { font-weight: 800; font-size: 14px; margin-bottom: 4px; }
+.money-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+.money-fields label { min-width: 0; display: flex; gap: 4px; align-items: center; font-weight: 850; }
+.money-fields input { width: clamp(54px, 15vw, 99px); min-height: 44px; border: 1px solid #8e9d90; border-radius: 8px; background: white; color: var(--ink); font: 800 18px system-ui; text-align: center; }
+.wallet-tools { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; align-items: center; margin: 6px 0; }
+.wallet-tools button:disabled { opacity: .57; }
+.wallet-tools p { flex: 1 1 108px; margin: 0; font-size: 13px; }
+.payment-hint { padding: 9px 11px; border-radius: 9px; background: #eef3e6; }
+.payment-message { min-height: 22px; margin: 6px 0; font-size: 13px; color: #8e3b24; }
+.payment-message:empty { min-height: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(100%); white-space: nowrap; }
+@media (max-width: 870px) {
+  .wrap { width: calc(100% - 32px); }
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .stats { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .wrap { width: calc(100% - 24px); }
+  .top .wrap { min-height: 57px; gap: 4px; }
+  .brand { font-size: 15px; gap: 6px; }
+  .brand-mark { width: 31px; height: 31px; font-size: 22px; border-radius: 8px; }
+  .actions { gap: 4px; }
+  .outline { padding-inline: 7px; font-size: 12px; }
+  .sound-toggle { justify-content: center; min-width: 42px; }
+  .sound-label { display: none; }
+  .brief { display: grid; gap: 12px; padding-block: 16px 12px; }
+  h1 { font-size: 31px; }
+  .mission { margin-top: 4px; font-size: 13px; }
+  .level-picker { display: flex; align-items: center; justify-content: space-between; }
+  .layout { display: flex; flex-direction: column; gap: 11px; }
+  .map-panel, .sidebar { width: 100%; }
+  .map-panel { display: contents; }
+  .map-panel .panel-head, .map-panel .legend { width: 100%; }
+  .map-panel .panel-head { background: var(--card); border: 1px solid var(--line); border-radius: 12px 12px 0 0; min-height: 39px; margin-bottom: -11px; padding: 7px 11px; }
+  .map { width: 100%; min-height: 367px; aspect-ratio: 360 / 331; }
+  .legend { background: var(--card); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 12px 12px; padding: 7px 10px; margin-top: -11px; }
+  .legend-list, .weather { font-size: 11px; }
+  .sidebar { display: contents; }
+  .stats { order: -1; width: 100%; padding-block: 5px; border-radius: 12px; }
+  .stat > span { font-size: 12px; }
+  .stat strong, .stat #wallet { font-size: 16px; }
+  .routes, .coach { width: 100%; }
+  .routes { padding: 12px; }
+  .node-label { font-size: 10px; top: calc(100% + 2px); padding: 1px 5px; }
+  .node-icon { width: 44px; font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) { .node.awake .node-icon, .cash-piece.picked, .tray-stack.new { animation: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> 星宝岛探险</div>
+    <div class="actions">
+      <button class="outline sound-toggle" id="sound-toggle" type="button" aria-label="游戏声音" aria-pressed="true" hidden><span class="sound-icon" id="sound-icon" aria-hidden="true">🔊</span><span class="sound-label">声音</span></button>
+      <button class="outline" id="help" type="button">怎么玩</button>
+      <button class="outline" id="reset" type="button">重新探险</button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section class="brief" aria-labelledby="title">
+    <div>
+      <p class="lesson" id="lesson"></p>
+      <h1 id="title">探险队，出发！</h1>
+      <p class="mission">带着至少 <b id="target"></b>到达星光神庙。<b id="reserve" hidden></b> <b id="deadline" hidden></b></p>
+    </div>
+    <button class="outline level-picker" id="choose-level" type="button"><span>🗺️ 选择关卡</span><small id="progress"></small></button>
+  </section>
+  <div class="layout">
+    <section class="panel map-panel" aria-labelledby="map-title">
+      <div class="panel-head"><h2 id="map-title">星宝岛地图</h2><p class="map-where" id="where"></p></div>
+      <div class="map" id="map">
+        <canvas id="island" aria-hidden="true"></canvas>
+        <canvas id="paths" aria-hidden="true"></canvas>
+        <div class="map-nodes" id="nodes" aria-label="地图地点"></div>
+      </div>
+      <div class="legend">
+        <ul class="legend-list"><li><i></i> 可走路线</li><li><i class="done"></i> 走过的路</li></ul>
+        <span class="weather" id="weather"></span>
+      </div>
+    </section>
+    <aside class="sidebar" aria-label="探险背包和路线选择">
+      <div class="panel stats" id="stats" aria-label="探险进度">
+        <div class="stat"><span>👛 人民币钱包</span><strong id="wallet"></strong></div>
+        <div class="stat"><span>💎 宝石</span><strong id="gems"></strong></div>
+        <div class="stat"><span>👣 已走</span><strong id="steps"></strong></div>
+        <div class="stat" id="hours-stat" hidden><span>⏳ 用时</span><strong id="hours"></strong></div>
+      </div>
+      <section class="panel routes" aria-labelledby="route-title">
+        <h2 id="route-title" tabindex="-1">下一站去哪儿？</h2>
+        <p class="kicker" id="route-kicker">算一算各项路费，再比较能拿到什么、接下来能去哪。</p>
+        <div id="route-list" class="route-list"></div>
+        <p class="route-message" id="route-message" aria-live="polite"></p>
+        <label class="gear" id="gear" hidden><input id="use-rope" type="checkbox"> <span id="gear-text"></span></label>
+        <button id="travel" class="primary" type="button" disabled>先选一条路线</button>
+      </section>
+      <section class="panel coach" aria-labelledby="coach-title">
+        <span class="coach-icon" aria-hidden="true">🦜</span>
+        <div><h2 id="coach-title">鹦鹉向导</h2><p id="coach-text" aria-live="polite"></p></div>
+      </section>
+    </aside>
+  </div>
+  <details class="panel journal">
+    <summary>探险手记 <span id="journal-count"></span></summary>
+    <ul id="journal-list"></ul>
+  </details>
+</main>
+<dialog id="help-dialog" aria-labelledby="help-title">
+  <h2 id="help-title">探险队怎么玩？</h2>
+  <ol>
+    <li>先把路线上的各项费用合起来，再考虑宝石、到站奖励和之后能去哪里。到了才领到奖励。</li>
+    <li>在收费站练习凑钱、兑换或找零。答对后扣除人民币路费并前进。答错可以看提示再试。</li>
+    <li>路线只能往前走。带够宝石到神庙开宝箱，有些关还要留下一笔应急钱。</li>
+    <li>有些关有神庙关门时间。只有走路才会消耗游戏里的小时，赶在关门时刻抵达也算准时。</li>
+    <li>没有通关时，先看看原因，想一个要改的地方。每次从码头出发后，可以用一次机会回到之前的岔路。</li>
+    <li>遇到阵雨，岩地可能加收路费。绳索折扣可以帮你省钱，每关只能用一次。</li>
+  </ol>
+  <form method="dialog"><button class="primary">明白了</button></form>
+</dialog>
+<dialog id="level-dialog" aria-labelledby="level-title">
+  <h2 id="level-title">探险关卡</h2>
+  <div id="levels"></div>
+  <form method="dialog"><button class="outline" style="margin-top: 14px">返回地图</button></form>
+</dialog>
+<dialog id="payment-dialog" aria-labelledby="payment-title">
+  <header class="cashier-top"><p id="payment-wallet"></p><h2 id="payment-title"></h2></header>
+  <form id="payment-form" novalidate>
+    <div class="cashier-body">
+      <div class="receipt" id="payment-fares" aria-label="费用明细"></div>
+      <p class="payment-question" id="payment-question" tabindex="-1"></p>
+      <div id="cash-pay" hidden>
+        <div class="money-rack" id="money-rack" role="group" aria-label="可选面额"></div>
+        <div class="wallet-tools">
+          <p><strong>付款托盘</strong></p>
+          <button class="outline" id="payment-undo" type="button">撤销一次</button>
+          <button class="outline" id="payment-clear" type="button">清空</button>
+        </div>
+        <div class="tray" id="payment-tray" role="group" aria-label="已选的钱币"></div>
+        <span id="tray-announcement" class="sr-only" role="status"></span>
+      </div>
+      <fieldset class="money-entry" id="money-entry" hidden>
+        <legend>填入你算出的金额</legend>
+        <div class="money-fields" id="money-fields"></div>
+      </fieldset>
+      <p id="payment-hint" class="payment-hint" hidden></p>
+      <p id="payment-message" class="payment-message" aria-live="polite"></p>
+    </div>
+    <div class="cashier-footer"><div class="dialog-actions">
+      <button class="outline" id="payment-back" type="button">返回选路</button>
+      <button class="outline" id="payment-help" type="button" aria-expanded="false" aria-controls="payment-hint">看提示</button>
+      <button class="primary" id="payment-submit" type="submit">确认并出发</button>
+    </div></div>
+  </form>
+</dialog>
+<dialog id="result-dialog" aria-labelledby="result-title">
+  <div class="result-emoji" id="result-icon" aria-hidden="true"></div>
+  <h2 id="result-title"></h2>
+  <p id="result-text"></p>
+  <p id="result-tip" class="result-tip"></p>
+  <p id="result-fork" hidden></p>
+  <div class="dialog-actions result-actions">
+    <button class="outline" id="review" type="button">看看走过的路</button>
+    <button class="primary" id="replan" type="button" hidden>回到岔路</button>
+    <button class="outline" id="retry" type="button">从码头重来</button>
+    <button class="primary" id="next-level" type="button" hidden>下一关</button>
+  </div>
+</dialog>
+<dialog id="restart-dialog" aria-labelledby="restart-title">
+  <h2 id="restart-title">开始新的探险？</h2>
+  <p>新探险会从码头出发。</p>
+  <form class="dialog-actions" method="dialog">
+    <button class="outline" value="stay">继续这局</button>
+    <button class="primary" value="restart">开始新探险</button>
+  </form>
+</dialog>
+<script>
+'use strict';
+
+const places = {
+  dock:    { name: '登陆码头', icon: '⚓', wide: [79, 260], compact: [180, 284] },
+  grove:   { name: '莓果林', icon: '🫐', wide: [221, 163], compact: [98, 229], reward: 1, find: '松鼠请你帮忙把蓝莓运到了树屋。' },
+  lookout: { name: '鹦鹉哨站', icon: '🦜', wide: [224, 249], compact: [180, 230], gems: 2, find: '鹦鹉带你找到了藏在木箱里的两颗宝石。' },
+  spring:  { name: '甜水泉', icon: '💧', wide: [225, 351], compact: [262, 229], reward: 2, find: '你跟着小鹿的脚印，帮泉水管理员找到了水壶。' },
+  cave:    { name: '回声洞', icon: '🦇', wide: [383, 138], compact: [89, 174], gems: 3, rocky: true, find: '洞里的回声带你找到了三颗发亮的宝石！' },
+  market:  { name: '海风集市', icon: '🧺', wide: [387, 244], compact: [180, 174], reward: 2, gems: 1, find: '摆完摊的海獭付了跑腿费，还送了一颗宝石。' },
+  camp:    { name: '烤饼营地', icon: '⛺', wide: [384, 358], compact: [271, 174], reward: 4, find: '你帮狐狸把刚出炉的烤饼送给了露营队。' },
+  ruins:   { name: '古石遗迹', icon: '🗿', wide: [549, 166], compact: [81, 119], gems: 2, rocky: true, find: '两颗宝石藏在长满苔藓的石像后。' },
+  orchard: { name: '金果园', icon: '🍊', wide: [544, 344], compact: [275, 119], reward: 3, find: '你和小猴一起把橙子送去果汁摊。' },
+  tower:   { name: '风信塔', icon: '🗼', wide: [708, 148], compact: [96, 63], gems: 3, rocky: true, find: '齿轮转动，塔顶的风箱吐出了三颗宝石！' },
+  bridge:  { name: '月牙桥', icon: '🌉', wide: [706, 316], compact: [266, 63], gems: 1, find: '桥边的贝壳里藏着一颗宝石。' },
+  temple:  { name: '星光神庙', icon: '🏛️', wide: [815, 230], compact: [180, 34], find: '探险队抵达了神庙，宝箱就在台阶尽头。' }
+};
+const pathsByPlace = {
+  dock: { grove: 3, lookout: 4, spring: 2 },
+  grove: { cave: 2, market: 3, camp: 2 },
+  lookout: { cave: 3, market: 2 },
+  spring: { market: 3, camp: 2 },
+  cave: { ruins: 3, orchard: 2 },
+  market: { ruins: 3, orchard: 2 },
+  camp: { ruins: 2, orchard: 1 },
+  ruins: { tower: 3, bridge: 2 },
+  orchard: { tower: 3, bridge: 1 },
+  tower: { temple: 2 },
+  bridge: { temple: 2 },
+  temple: {}
+};
+const routeHours = { grove: 2, lookout: 3, spring: 1, cave: 3, market: 2, camp: 2, ruins: 3, orchard: 2, tower: 3, bridge: 1, temple: 2 };
+const chapters = [
+  '认识整元',
+  '凑钱和找零',
+  '元和角互换',
+  '认识分和计算余额',
+  '探险预算'
+];
+const levels = [
+  { name: '码头的第一张船票', lesson: '把两项费用加起来，用整元付款', cash: 1200, rate: 100, unit: 100, target: 4, drills: 'P' },
+  { name: '松鼠的零钱袋', lesson: '用不同面额凑出同一金额', cash: 1700, rate: 200, unit: 100, target: 4, drills: 'P' },
+  { name: '哪条路便宜', lesson: '比较两条路相差几元', cash: 1700, rate: 200, unit: 100, target: 4, drills: 'DPB' },
+  { name: '装满小钱包', lesson: '路费和零钱奖励一起算', cash: 1600, rate: 200, unit: 100, target: 4, drills: 'BP' },
+  { name: '狐狸收费站', lesson: '付款金额减去路费', cash: 2000, rate: 200, unit: 100, target: 4, drills: 'CP' },
+  { name: '找回几元', lesson: '练习用大面额付款并找零', cash: 2300, rate: 300, unit: 100, target: 4, drills: 'C' },
+  { name: '果园的账本', lesson: '算找零，再算收支', cash: 2900, rate: 300, unit: 100, target: 5, drills: 'CBD' },
+  { name: '双路线比价', lesson: '比路费、找零、留余额', cash: 3400, rate: 400, unit: 100, target: 5, drills: 'DCCBP' },
+  { name: '一元换十角', lesson: '把整元换成角', cash: 1200, rate: 100, unit: 100, target: 4, drills: 'J' },
+  { name: '零钱铺开张', lesson: '练习元和角双向兑换', cash: 1650, rate: 150, unit: 10, target: 4, drills: 'JYP' },
+  { name: '过桥找零', lesson: '送出整元，找回几角', cash: 2100, rate: 180, unit: 10, target: 5, drills: 'CJP' },
+  { name: '月牙桥比价', lesson: '在神庙关门前，比一比路费和用时', cash: 2340, rate: 230, unit: 10, target: 5, drills: 'JDPCB', deadline: 11 },
+  { name: '角变成分', lesson: '一角是十分，一元是一百分', cash: 610, rate: 50, unit: 1, target: 4, drills: 'F' },
+  { name: '小面额也能凑', lesson: '把分换回元角分，再凑出路费', cash: 920, rate: 85, unit: 1, target: 4, drills: 'PMF' },
+  { name: '风信塔零钱题', lesson: '跨元、角、分算找零', cash: 1495, rate: 135, unit: 1, target: 5, drills: 'CFPC', deadline: 11 },
+  { name: '小队记账员', lesson: '付款、领奖励、算余额', cash: 1675, rate: 155, unit: 1, target: 5, drills: 'BDFCB', deadline: 11 },
+  { name: '阵雨里的选择', lesson: '比较加收后的路费', cash: 1720, rate: 165, unit: 10, target: 5, drills: 'DJCBB', rain: 30, discount: 160, reserve: 100, deadline: 11 },
+  { name: '绳索留给谁', lesson: '选择使用一次折扣的时机', cash: 1950, rate: 185, unit: 10, target: 6, drills: 'DCJPB', rain: 50, discount: 250, reserve: 150, deadline: 11 },
+  { name: '应急钱包', lesson: '同时完成寻宝和存钱目标', cash: 2180, rate: 195, unit: 1, target: 6, drills: 'BFCDB', rain: 43, discount: 270, reserve: 200, deadline: 12 },
+  { name: '星宝岛大挑战', lesson: '顾好路费、宝石和关门时间', cash: 2328, rate: 219, unit: 1, target: 6, drills: 'DMCPB', rain: 56, discount: 318, reserve: 250, deadline: 11 }
+];
+
+const totalSteps = 5;
+const notes = [1, 2, 5, 10, 50, 100, 500, 1000, 2000, 5000];
+const progressKey = 'star-treasure-island-yuan-v1';
+const $ = id => document.getElementById(id);
+const completed = loadProgress();
+let game;
+let selected = null;
+let lastArrival = '';
+let pendingLevel = null;
+let payment = null;
+const levelConfig = () => levels[game.level - 1];
+
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(progressKey));
+    return new Set(Array.isArray(saved) ? saved.filter(level => Number.isInteger(level) && level >= 1 && level <= levels.length) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveProgress() {
+  completed.add(game.level);
+  try {
+    localStorage.setItem(progressKey, JSON.stringify([...new Set([...loadProgress(), ...completed])]));
+  } catch {
+    // Keep progress for the current visit if browser storage is unavailable.
+  }
+}
+
+function money(amount) {
+  const yuan = Math.floor(amount / 100);
+  const jiao = Math.floor(amount % 100 / 10);
+  const fen = amount % 10;
+  return [yuan && yuan + '元', jiao && jiao + '角', fen && fen + '分'].filter(Boolean).join('') || '0元';
+}
+
+const AudioEngine = window.AudioContext || window.webkitAudioContext;
+const soundKey = 'star-treasure-island-sound';
+const soundCues = {
+  select: [[523, 0, .075, .043]],
+  coin: [[988, 0, .07, .095], [1568, .028, .11, .048]],
+  retry: [[392, 0, .10, .034], [330, .10, .14, .028]],
+  setback: [[440, 0, .16, .042], [349, .11, .24, .033]],
+  arrival: [[440, 0, .11, .055], [587, .09, .17, .046]],
+  gem: [[659, 0, .12, .065], [880, .09, .19, .052], [1047, .19, .22, .042]],
+  chest: [[523, 0, .18, .07], [659, .12, .20, .065], [784, .24, .24, .062], [1047, .36, .43, .056]]
+};
+let soundEnabled = true;
+let gameAudio;
+
+try {
+  soundEnabled = localStorage.getItem(soundKey) !== 'off';
+} catch {
+  // Sound is still available when the browser blocks local storage.
+}
+
+const placeSound = {
+  dock: 'shore', grove: 'forest', lookout: 'shore', spring: 'forest',
+  cave: 'cave', market: 'market', camp: 'forest', ruins: 'cave',
+  orchard: 'forest', tower: 'shore', bridge: 'shore', temple: 'cave'
+};
+const natureTracks = {
+  shore: { low: .56, high: .18, swell: 6, accents: [[4.2, 1320], [4.58, 1490], [10.8, 1210], [11.14, 1370]], bend: 25, length: .33, strength: .045 },
+  forest: { low: .21, high: .12, swell: 8, accents: [[1.3, 2200], [1.53, 1760], [3.4, 1970], [7.2, 2320], [7.39, 2110], [12.4, 1830]], bend: 42, length: .19, strength: .058 },
+  cave: { low: .13, high: .018, swell: 8, accents: [[1.8, 540], [4.6, 740], [9.3, 610], [10.1, 820], [13.6, 560]], bend: -19, length: .38, strength: .11 },
+  market: { low: .22, high: .092, swell: 4, accents: [[1.2, 330], [2.3, 215], [6.3, 400], [8.6, 275], [12.5, 360]], bend: 4, length: .25, strength: .06 },
+  rain: { low: .13, high: .34, swell: 8, accents: [[.8, 950], [2.1, 1300], [3.7, 765], [5.6, 1110], [6, 870], [8.15, 1250], [10.1, 905], [13.75, 1100]], bend: -14, length: .20, strength: .045 }
+};
+const islandChords = [
+  [48, [72, 76, 79, 76]], [55, [74, 79, 83, 79]], [45, [72, 76, 81, 79]], [53, [69, 72, 77, 76]],
+  [48, [67, 72, 76, 81]], [52, [71, 76, 79, 76]], [53, [69, 72, 77, 81]], [55, [74, 79, 81, 79]],
+  [45, [72, 76, 81, 84]], [52, [71, 76, 79, 83]], [53, [69, 72, 77, 76]], [48, [67, 72, 76, 79]],
+  [50, [69, 74, 77, 81]], [55, [71, 74, 79, 83]], [53, [72, 77, 81, 79]], [48, [76, 74, 72]]
+];
+
+function mixIslandTone(buffer, start, frequency, length, strength, bend = 0) {
+  const samples = buffer.getChannelData(0);
+  const count = Math.floor(length * buffer.sampleRate);
+  const offset = Math.floor(start * buffer.sampleRate);
+  for (let index = 0; index < count && offset + index < samples.length; index++) {
+    const progress = index / count;
+    const seconds = index / buffer.sampleRate;
+    const phase = 2 * Math.PI * (frequency * seconds + bend * progress ** 2);
+    const envelope = Math.min(1, seconds / .018) * (1 - progress) ** 3;
+    samples[offset + index] += (Math.sin(phase) + .22 * Math.sin(phase * 2)) * strength * envelope;
+  }
+}
+
+function makeIslandMusic(context) {
+  const rate = 22050;
+  const barLength = 2.4;
+  const buffer = context.createBuffer(1, Math.round(islandChords.length * barLength * rate), rate);
+  const pitch = note => 440 * 2 ** ((note - 69) / 12);
+  islandChords.forEach(([bass, tune], index) => {
+    const start = index * barLength;
+    mixIslandTone(buffer, start + .05, pitch(bass), 1.9, .061);
+    mixIslandTone(buffer, start + 1.22, pitch(bass + 7), 1.03, .035);
+    tune.forEach((note, beat) => {
+      mixIslandTone(buffer, start + .20 + beat * .52, pitch(note), .67, beat === 0 ? .062 : .041);
+    });
+  });
+  return buffer;
+}
+
+function makeNatureTrack(context, name) {
+  const rate = 22050;
+  const duration = 16;
+  const buffer = context.createBuffer(1, duration * rate, rate);
+  const samples = buffer.getChannelData(0);
+  const { low, high, swell, accents, bend, length, strength } = natureTracks[name];
+  let wind = 0;
+  let texture = 0;
+  for (let index = 0; index < samples.length; index++) {
+    const time = index / rate;
+    const noise = Math.random() * 2 - 1;
+    wind += .035 * (noise - wind);
+    texture += .27 * (noise - texture);
+    const rhythm = .5 - .5 * Math.cos(time * 2 * Math.PI / swell);
+    const edge = Math.min(1, time * 5, (duration - time) * 5);
+    samples[index] = (wind * low + (texture - wind) * high) * (.48 + .52 * rhythm ** 2) * edge;
+  }
+  for (const [start, pitch] of accents) {
+    mixIslandTone(buffer, start, pitch, length, strength, bend);
+    if (name === 'cave') mixIslandTone(buffer, start + .16, pitch, .42, .034, bend);
+  }
+  return buffer;
+}
+
+function addSoundTrack(name) {
+  const { context, volume, tracks } = gameAudio;
+  const track = context.createBufferSource();
+  const gain = context.createGain();
+  gain.gain.value = 0;
+  track.buffer = name === 'music' ? makeIslandMusic(context) : makeNatureTrack(context, name);
+  track.loop = true;
+  track.connect(gain);
+  gain.connect(volume);
+  track.start();
+  tracks.set(name, gain);
+}
+
+function updateSoundScene() {
+  if (!gameAudio || !game || !soundEnabled || document.hidden) return;
+  const { context, tracks } = gameAudio;
+  if (context.state === 'closed') return;
+  const cashierOpen = $('payment-dialog').open;
+  const place = cashierOpen ? 'market' : placeSound[game.position];
+  const raining = !cashierOpen && !game.outcome && hasRain(levelConfig(), game.visited.length);
+  const scene = [place, cashierOpen, raining].join(':');
+  if (gameAudio.scene === scene) return;
+  const levels = new Map([['music', cashierOpen ? .28 : .57], [place, raining ? .46 : .74]]);
+  if (raining) levels.set('rain', .72);
+  try {
+    for (const name of levels.keys()) {
+      if (!tracks.has(name)) addSoundTrack(name);
+    }
+    const now = context.currentTime;
+    for (const [name, gain] of tracks) gain.gain.setTargetAtTime(levels.get(name) || 0, now, .31);
+    gameAudio.scene = scene;
+  } catch {
+    // A failed sound layer does not interrupt the game.
+  }
+}
+
+function setSoundVolume() {
+  if (!gameAudio) return;
+  const { context, volume } = gameAudio;
+  if (context.state === 'closed') return;
+  const level = soundEnabled && !document.hidden ? .72 : 0;
+  volume.gain.setTargetAtTime(level, context.currentTime, level ? .08 : .018);
+}
+
+function wakeSound() {
+  if (!AudioEngine || !soundEnabled || document.hidden) return;
+  try {
+    if (!gameAudio) {
+      const context = new AudioEngine();
+      const volume = context.createGain();
+      volume.gain.value = 0;
+      volume.connect(context.destination);
+      gameAudio = { context, volume, tracks: new Map(), scene: '' };
+      setSoundVolume();
+    }
+    if (gameAudio.context.state !== 'running') gameAudio.context.resume().catch(() => {});
+    updateSoundScene();
+  } catch {
+    // The game can continue if the browser cannot start an audio device.
+  }
+}
+
+function playSound(cue) {
+  if (!gameAudio || !soundEnabled || document.hidden || gameAudio.context.state === 'closed') return;
+  const { context, volume } = gameAudio;
+  const now = context.currentTime;
+  for (const [frequency, delay, length, loudness] of soundCues[cue]) {
+    const tone = context.createOscillator();
+    const envelope = context.createGain();
+    const start = now + delay;
+    tone.type = 'sine';
+    tone.frequency.value = frequency;
+    envelope.gain.setValueAtTime(.0001, start);
+    envelope.gain.exponentialRampToValueAtTime(loudness, start + .013);
+    envelope.gain.exponentialRampToValueAtTime(.0001, start + length);
+    tone.connect(envelope);
+    envelope.connect(volume);
+    tone.onended = () => { tone.disconnect(); envelope.disconnect(); };
+    tone.start(start);
+    tone.stop(start + length);
+  }
+}
+
+function renderSoundToggle() {
+  $('sound-toggle').setAttribute('aria-pressed', String(soundEnabled));
+  $('sound-toggle').title = soundEnabled ? '关闭游戏声音' : '开启游戏声音';
+  $('sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+if (AudioEngine) {
+  const toggle = $('sound-toggle');
+  toggle.hidden = false;
+  renderSoundToggle();
+  toggle.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    try {
+      localStorage.setItem(soundKey, soundEnabled ? 'on' : 'off');
+    } catch {
+      // The switch still works for the current visit.
+    }
+    renderSoundToggle();
+    setSoundVolume();
+    if (soundEnabled) wakeSound();
+  });
+  document.addEventListener('click', event => {
+    if (event.isTrusted && !toggle.contains(event.target)) wakeSound();
+  }, { capture: true });
+  document.addEventListener('visibilitychange', () => {
+    setSoundVolume();
+    updateSoundScene();
+  });
+}
+
+function start(level) {
+  const config = levels[level - 1];
+  game = {
+    level, position: 'dock', visited: ['dock'], wallet: config.cash, gems: 0,
+    hours: 0, decisions: [], replanned: false, rope: Boolean(config.discount), outcome: null,
+    feedback: config.deadline ? '算算路费，也看看每条路需要几小时。给最后去神庙的一段留出时间。' : '想早点拿宝石，还是先给钱包留些钱？出发前也看看下一站能通往哪里。',
+    journal: []
+  };
+  selected = null;
+  lastArrival = '';
+  payment = null;
+  $('use-rope').checked = false;
+  $('journal-list').closest('details').open = false;
+  render();
+}
+
+function hasRain(level, step) {
+  return Boolean(level.rain) && (step === 2 || step === 4);
+}
+
+const routeCharges = {
+  grove: ['林道票', '竹篮租金', 0],
+  lookout: ['栈道票', '望远镜租金', 3],
+  spring: ['木筏票', '水壶租金', 2],
+  cave: ['洞口票', '头灯租金', 1],
+  market: ['渡船票', '货篮租金', 1],
+  camp: ['营地门票', '装备寄放', 0],
+  ruins: ['山道票', '头盔租金', 2],
+  orchard: ['果园门票', '果篮租金', 3],
+  tower: ['登塔票', '护具租金', 3],
+  bridge: ['过桥费', '行李托运', 1],
+  temple: ['神庙门票', '向导费', 2]
+};
+
+function estimate(level, from, to, step, wallet, useRope = false) {
+  const place = places[to];
+  const [fareLabel, gearLabel, variation] = routeCharges[to];
+  const extra = level.unit === 100 ? 0 : variation * level.unit;
+  const fareUnits = Math.max(2, Math.ceil((pathsByPlace[from][to] * level.rate + extra) / level.unit));
+  const gearUnits = Math.min(fareUnits - 1, Math.max(1, Math.floor((fareUnits + variation) / 3)));
+  const base = fareUnits * level.unit;
+  const rain = hasRain(level, step) && place.rocky ? level.rain : 0;
+  const saving = useRope && place.rocky ? Math.min(base + rain - level.unit, level.discount || 0) : 0;
+  const cost = base + rain - saving;
+  const reward = (place.reward || 0) * Math.floor(level.rate / level.unit) * level.unit;
+  const charges = [[fareLabel, (fareUnits - gearUnits) * level.unit], [gearLabel, gearUnits * level.unit]];
+  if (rain) charges.push(['雨天加收', rain]);
+  if (saving) charges.push(['绳索折扣', -saving]);
+  return { charges, cost, saving, reward, walletAfter: wallet - cost + reward, affordable: wallet >= cost };
+}
+
+function selectPlace(id, source) {
+  if (game.outcome || !Object.hasOwn(pathsByPlace[game.position], id)) return;
+  if (selected !== id) {
+    $('use-rope').checked = false;
+    playSound('select');
+  }
+  selected = id;
+  render(source === 'board' ? 'node-' + id : 'route-' + id);
+  if (source === 'board' && compactMap.matches) $('route-' + id).scrollIntoView({ block: 'nearest' });
+}
+
+function arrivalResult(level, state) {
+  if (level.deadline && state.hours > level.deadline) return 'late';
+  if (state.position === 'temple') {
+    if (state.gems < level.target) return 'missing';
+    return state.wallet >= (level.reserve || 0) ? 'won' : 'reserve';
+  }
+  return null;
+}
+
+function resultFor(level, state, nextStep) {
+  const result = arrivalResult(level, state);
+  if (result) return result;
+  const canContinue = Object.keys(pathsByPlace[state.position]).some(id => estimate(level, state.position, id, nextStep, state.wallet, state.rope).affordable);
+  return canContinue ? null : 'stuck';
+}
+
+function fareParts(charges) {
+  const parts = document.createElement('span');
+  parts.className = 'fare-parts';
+  for (const [label, amount] of charges) {
+    const part = document.createElement('span');
+    part.className = amount < 0 ? 'fare-part discount' : 'fare-part';
+    part.textContent = label + ' ' + (amount < 0 ? '−' : '') + money(Math.abs(amount));
+    parts.append(part);
+  }
+  return parts;
+}
+
+function makeExercise(level, to, trip, step) {
+  const drill = level.drills[(step - 1) % level.drills.length];
+  if (drill === 'P') {
+    return {
+      title: '凑出路费', prompt: '先算费用，再点钱币放进托盘。',
+      exact: true, answer: trip.cost, hint: '把费用一项一项加起来。凑钱时可以先拿大面额，再用小面额补齐。'
+    };
+  }
+  if (drill === 'J' || drill === 'F') {
+    const unit = drill === 'J' ? '角' : '分';
+    const hint = drill === 'J' ? '1元＝10角。把每项费用都换成角，再加起来。' : '1元＝100分，1角＝10分。把每项费用都换成分，再加起来。';
+    return {
+      title: '兑换零钱', prompt: '用' + unit + '来付，一共要多少' + unit + '？', answer: trip.cost, unit, hint
+    };
+  }
+  if (drill === 'Y' || drill === 'M') {
+    const inJiao = drill === 'Y';
+    const original = inJiao ? trip.cost / 10 + '角' : trip.cost + '分';
+    return {
+      title: '把零钱换成大面额', prompt: '兑换柜台收了 ' + original + '。能换成多少整元？还剩多少零头？',
+      answer: trip.cost, exchange: true,
+      hint: inJiao ? '每 10 角换成 1 元，剩下不到 10 角的部分还用角。' : '每 100 分先换成 1 元，再把剩下的分按每 10 分换 1 角。'
+    };
+  }
+  if (drill === 'C') {
+    const tender = notes.find(note => note > trip.cost && note <= game.wallet) ||
+      Math.min(game.wallet, trip.cost + level.unit * 2);
+    if (tender > trip.cost) {
+      return {
+        title: '帮队长算找零', prompt: '一共递出 ' + money(tender) + '。收费员该找回多少钱？',
+        answer: tender - trip.cost, hint: '先合并各项费用，再用递出去的钱减去路费。'
+      };
+    }
+  }
+  const other = Object.keys(pathsByPlace[game.position]).find(id => id !== to);
+  if (drill === 'D' && other) {
+    const otherTrip = estimate(level, game.position, other, step, game.wallet);
+    return {
+      title: '两条路差多少钱', prompt: '分别算出两条路的总费用。它们相差多少钱？',
+      answer: Math.abs(otherTrip.cost - trip.cost), comparedRoute: { id: other, trip: otherTrip },
+      hint: '可以先把各项费用换成同一个单位。用较大的总费用减去较小的。'
+    };
+  }
+  return {
+    title: '算算到站余额',
+    prompt: trip.reward ? '支付路费，到站领 ' + money(trip.reward) + '。钱包会剩多少钱？' : '付完路费，钱包会剩多少钱？',
+    answer: trip.walletAfter, hint: '用钱包里的钱减去路费，到站后再加上这一站的奖励。'
+  };
+}
+
+function travel() {
+  if (game.outcome) {
+    showResult();
+    return;
+  }
+  if (!selected || $('payment-dialog').open) return;
+  const level = levelConfig();
+  const step = game.visited.length;
+  const trip = estimate(level, game.position, selected, step, game.wallet, game.rope && $('use-rope').checked);
+  if (!trip.affordable) {
+    $('route-message').textContent = '钱包的钱付不了这条路。' + (game.rope && places[selected].rocky && !$('use-rope').checked ? '试试绳索折扣，或换一条路。' : '试试别的路线。');
+    return;
+  }
+  payment = { to: selected, trip, exercise: makeExercise(level, selected, trip, step), tender: [] };
+  openPayment(level);
+}
+
+function cashPiece(value, tag) {
+  const piece = document.createElement(tag);
+  piece.className = 'cash-piece';
+  piece.dataset.cash = value >= 500 ? 'note' : value === 50 || value === 5 ? 'coin' : 'silver';
+  piece.textContent = money(value);
+  return piece;
+}
+
+function openPayment(level) {
+  const { to, trip, exercise } = payment;
+  $('payment-title').textContent = places[to].name + '收费站';
+  $('payment-wallet').textContent = '👛 钱包 ' + money(game.wallet);
+  const bills = $('payment-fares');
+  bills.hidden = Boolean(exercise.exchange);
+  bills.replaceChildren();
+  if (!exercise.exchange) {
+    const receipts = [{ id: to, trip }];
+    if (exercise.comparedRoute) receipts.push(exercise.comparedRoute);
+    for (const receipt of receipts) {
+      const row = document.createElement('div');
+      row.className = 'receipt-row';
+      const label = document.createElement('strong');
+      label.textContent = places[receipt.id].name;
+      row.append(label, fareParts(receipt.trip.charges));
+      bills.append(row);
+    }
+  }
+  $('payment-question').textContent = exercise.title + ' · ' + exercise.prompt;
+  $('payment-hint').textContent = exercise.hint;
+  $('payment-hint').hidden = true;
+  $('payment-help').setAttribute('aria-expanded', 'false');
+  $('payment-message').textContent = '';
+  $('tray-announcement').textContent = '';
+  $('cash-pay').hidden = !exercise.exact;
+  $('money-entry').hidden = Boolean(exercise.exact);
+  if (exercise.exact) {
+    const available = notes.filter(value => value % level.unit === 0 && value <= game.wallet).reverse();
+    $('money-rack').replaceChildren(...available.map(value => {
+      const button = cashPiece(value, 'button');
+      button.type = 'button';
+      button.setAttribute('aria-label', '放入 ' + money(value));
+      button.addEventListener('click', () => addCash(button, value));
+      button.addEventListener('animationend', () => button.classList.remove('picked'));
+      return button;
+    }));
+    renderTender();
+  } else {
+    renderMoneyFields(level, exercise.unit);
+    $('payment-submit').disabled = false;
+  }
+  $('payment-dialog').showModal();
+  updateSoundScene();
+  $('payment-question').focus();
+}
+
+const currencyUnits = [
+  { name: '元', value: 100 },
+  { name: '角', value: 10 },
+  { name: '分', value: 1 }
+];
+
+function renderMoneyFields(level, unit) {
+  const fields = unit ? currencyUnits.filter(item => item.name === unit) : currencyUnits.filter(item => item.value >= level.unit);
+  $('money-fields').replaceChildren(...fields.map((field, index) => {
+    const label = document.createElement('label');
+    const text = document.createElement('span');
+    text.textContent = field.name;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.autocomplete = 'off';
+    input.maxLength = index ? 1 : 5;
+    input.dataset.weight = field.value;
+    label.append(input, text);
+    return label;
+  }));
+}
+
+function readAnswer() {
+  const fields = [...$('money-fields').querySelectorAll('input')];
+  if (!fields.some(field => field.value.trim() !== '')) return null;
+  let amount = 0;
+  for (const field of fields) {
+    const raw = field.value.trim().replace(/[０-９]/g, digit => String(digit.charCodeAt(0) - 0xff10));
+    if (raw && !/^\d+$/.test(raw)) return null;
+    amount += Number(raw) * Number(field.dataset.weight);
+  }
+  return amount;
+}
+
+function addCash(button, value) {
+  $('payment-message').textContent = '';
+  if (tenderTotal() + value > game.wallet) {
+    $('payment-message').textContent = '钱包里的钱不够再放这枚钱币。可以先撤销一次。';
+    return;
+  }
+  payment.tender.push(value);
+  playSound('coin');
+  button.classList.remove('picked');
+  void button.offsetWidth;
+  button.classList.add('picked');
+  renderTender(value);
+  $('tray-announcement').textContent = '已放入 ' + money(value) + '，这个面额有 ' + payment.tender.filter(amount => amount === value).length + ' 个。';
+}
+
+function tenderTotal() {
+  return payment.tender.reduce((sum, value) => sum + value, 0);
+}
+
+function renderTender(added) {
+  const { tender } = payment;
+  const counts = new Map();
+  for (const amount of tender) counts.set(amount, (counts.get(amount) || 0) + 1);
+  const tray = $('payment-tray');
+  if (!counts.size) {
+    const empty = document.createElement('p');
+    empty.textContent = '点上面的钱币，把它放进托盘。';
+    tray.replaceChildren(empty);
+  } else {
+    tray.replaceChildren(...[...counts].sort(([a], [b]) => b - a).map(([amount, count]) => {
+      const stack = document.createElement('div');
+      stack.className = amount === added ? 'tray-stack new' : 'tray-stack';
+      const quantity = document.createElement('small');
+      quantity.textContent = '×' + count;
+      stack.append(cashPiece(amount, 'span'), quantity);
+      return stack;
+    }));
+  }
+  $('payment-undo').disabled = tender.length === 0;
+  $('payment-clear').disabled = tender.length === 0;
+  $('payment-submit').disabled = tender.length === 0;
+}
+
+function confirmPayment(event) {
+  event.preventDefault();
+  if (!payment || !$('payment-dialog').open) return;
+  const { to, trip, exercise } = payment;
+  const answer = exercise.exact ? tenderTotal() : readAnswer();
+  if (answer !== exercise.answer) {
+    $('payment-message').textContent = answer === null ? '先填入你算出的金额。' : '再核对一下，也可以点「看提示」。';
+    if (answer !== null) playSound('retry');
+    return;
+  }
+  payment = null;
+  $('payment-dialog').close();
+  finishTravel(to, trip);
+}
+
+function stateAfterTrip(state, to, trip) {
+  return {
+    position: to,
+    hours: state.hours + routeHours[to],
+    wallet: trip.walletAfter,
+    gems: state.gems + (places[to].gems || 0),
+    rope: state.rope && !trip.saving
+  };
+}
+
+function finishTravel(to, trip) {
+  const place = places[to];
+  const level = levelConfig();
+  const { position, wallet, gems, hours, rope } = game;
+  game.decisions.push({ position, wallet, gems, hours, rope, to });
+  Object.assign(game, stateAfterTrip(game, to, trip));
+  game.visited.push(to);
+  const details = [
+    '路费 ' + money(trip.cost),
+    trip.reward && '奖励 +' + money(trip.reward),
+    place.gems && '宝石 +' + place.gems,
+    trip.saving && '绳索省了 ' + money(trip.saving),
+    level.deadline && '走了 ' + routeHours[to] + ' 小时，累计 ' + game.hours + ' 小时',
+    '余额 ' + money(game.wallet)
+  ].filter(Boolean);
+  game.journal.push(place.name + ' · ' + details.join(' · ') + '。' + place.find);
+  game.outcome = resultFor(level, game, game.visited.length);
+  playSound(game.outcome ? (game.outcome === 'won' ? 'chest' : 'setback') : place.gems ? 'gem' : 'arrival');
+  if (game.outcome === 'won') saveProgress();
+  game.feedback = feedbackFor(place, trip);
+  selected = null;
+  lastArrival = to;
+  $('use-rope').checked = false;
+  render(game.outcome ? 'travel' : 'route-title');
+  lastArrival = '';
+  if (game.outcome) showResult();
+}
+
+function feedbackFor(place, trip) {
+  if (game.outcome === 'late') return '神庙已经关门。看看手记里哪一段走得最久，下次试试更短的路。';
+  if (game.outcome === 'stuck') return '钱包里的钱不够付下一站路费。下次可以先绕去泉水、营地或果园赚零钱。';
+  if (game.outcome === 'missing') return '你走到了神庙！下次可以多去一处有宝石的地点。';
+  if (game.outcome === 'reserve') return '宝石够了，钱包没达到应急金目标。想想哪条路线能多赚一点或少花一点。';
+  if (game.outcome === 'won') return game.replanned ? '宝箱打开啦！想一想换过的那一步帮了什么忙。' : '宝箱打开啦！回头看看哪一站帮你赚到了零钱、节省了路费或找到了宝石。';
+  if (trip.saving) return '绳索让这段路少花了 ' + money(trip.saving) + '。下一段要靠钱包里的钱走了。';
+  if (trip.reward) return place.find + ' 领到 ' + money(trip.reward) + '，钱包现在有 ' + money(game.wallet) + '。';
+  const need = levelConfig().target - game.gems;
+  return place.find + (need > 0 ? ' 离目标还差 ' + need + ' 颗。' : ' 宝石够啦，接下来看看怎么省路费。');
+}
+
+function canFinishFrom(level, state, step, previousDestination = '') {
+  const result = arrivalResult(level, state);
+  if (result) return result === 'won';
+  return Object.keys(pathsByPlace[state.position]).some(id => {
+    if (id === previousDestination) return false;
+    const choices = [estimate(level, state.position, id, step, state.wallet)];
+    if (state.rope && places[id].rocky) choices.push(estimate(level, state.position, id, step, state.wallet, true));
+    return choices.some(trip => trip.affordable && canFinishFrom(level, stateAfterTrip(state, id, trip), step + 1));
+  });
+}
+
+function findReplan() {
+  if (!game.outcome || game.outcome === 'won' || game.replanned) return null;
+  const level = levelConfig();
+  for (let index = game.decisions.length - 1; index > 0; index--) {
+    const decision = game.decisions[index];
+    if (canFinishFrom(level, decision, index + 1, decision.to)) return { decision, index };
+  }
+  return null;
+}
+
+function replanRoute() {
+  const fork = findReplan();
+  if (!fork) return;
+  const { decision, index } = fork;
+  const { position, wallet, gems, hours, rope, to } = decision;
+  $('result-dialog').close();
+  Object.assign(game, {
+    position, wallet, gems, hours, rope, outcome: null, replanned: true,
+    feedback: '回到了' + places[position].name + '。上次去了' + places[to].name + '，看看这次可以改哪一步。'
+  });
+  game.visited.length = index + 1;
+  game.journal.length = index;
+  game.decisions.length = index;
+  $('use-rope').checked = false;
+  render('route-title');
+}
+
+function showResult() {
+  const level = levelConfig();
+  const content = {
+    won: ['🎉', '宝箱打开啦！', game.replanned ? '你换了个办法，完成了探险。哪一步帮你达成了目标？' : '想想哪一步最帮得上忙。也可以从码头试一条不同的路线。'],
+    missing: ['🔒', '宝石还没凑够', '看看手记，找一个能绕去收集宝石的岔路。'],
+    reserve: ['👛', '应急钱还没攒够', '到神庙时要留 ' + money(level.reserve) + '。哪一段可以少花点，或者改去有奖励的地方？'],
+    stuck: ['👛', '路费不够了', '先想想哪一站花得多。下次可以提早去一站领零钱奖励。'],
+    late: ['🌙', '神庙已经关门了', '神庙在第 ' + level.deadline + ' 小时关门。哪一段走得最久？下次试试更短的路。']
+  }[game.outcome];
+  $('result-icon').textContent = content[0];
+  $('result-title').textContent = content[1];
+  $('result-text').textContent = '走了 ' + (game.visited.length - 1) + ' 步' + (level.deadline ? '，用了 ' + game.hours + ' 小时' : '') + '，收集 ' + game.gems + ' / ' + level.target + ' 颗宝石，钱包还剩 ' + money(game.wallet) + '。';
+  $('result-tip').textContent = content[2];
+  const fork = findReplan();
+  $('replan').hidden = !fork;
+  $('result-fork').hidden = !fork;
+  $('result-fork').textContent = fork ? '可以回到' + places[fork.decision.position].name + '，重选原本去' + places[fork.decision.to].name + '的那一步。' : '';
+  $('next-level').hidden = game.outcome !== 'won' || game.level >= levels.length;
+  $('result-dialog').showModal();
+}
+
+function render(focusId) {
+  const level = levelConfig();
+  const step = game.visited.length;
+  $('lesson').textContent = '第 ' + game.level + ' 关 · ' + level.lesson;
+  $('title').textContent = level.name;
+  $('progress').textContent = '已通关 ' + completed.size + ' / ' + levels.length;
+  $('target').textContent = level.target + ' 颗宝石';
+  $('reserve').hidden = !level.reserve;
+  $('reserve').textContent = level.reserve ? '钱包还要留 ' + money(level.reserve) + ' 应急。' : '';
+  $('deadline').hidden = !level.deadline;
+  $('deadline').textContent = level.deadline ? '神庙第 ' + level.deadline + ' 小时关门。' : '';
+  $('stats').classList.toggle('timed', Boolean(level.deadline));
+  $('hours-stat').hidden = !level.deadline;
+  $('hours').textContent = level.deadline ? game.hours + ' / ' + level.deadline : '';
+  $('wallet').textContent = money(game.wallet);
+  $('gems').innerHTML = game.gems + ' <span>/ ' + level.target + '</span>';
+  $('steps').innerHTML = (step - 1) + ' <span>/ ' + totalSteps + '</span>';
+  $('where').textContent = '你在 ' + places[game.position].name;
+  $('coach-text').textContent = game.feedback;
+  $('journal-count').textContent = game.journal.length + ' 条记录';
+  $('journal-list').replaceChildren(...(game.journal.length ? game.journal : ['走到新地点后，会记下路费、奖励和钱包余额。']).map(note => {
+    const li = document.createElement('li');
+    li.textContent = note;
+    return li;
+  }));
+  if (game.outcome) $('weather').textContent = '本次探险结束';
+  else if (!level.rain) $('weather').textContent = '☀️ 晴天';
+  else $('weather').textContent = hasRain(level, step) ? '🌧️ 本步岩地加收 ' + money(level.rain) : '☀️ 第 2、4 步预计有阵雨';
+  renderRoutes();
+  renderMap();
+  updateSoundScene();
+  if (focusId) $(focusId)?.focus({ preventScroll: true });
+}
+
+function renderRoutes() {
+  const level = levelConfig();
+  const options = game.outcome ? [] : Object.keys(pathsByPlace[game.position]);
+  const step = game.visited.length;
+  const useRope = game.rope && $('use-rope').checked;
+  $('route-message').textContent = '';
+  $('route-title').textContent = game.outcome ? '探险结束' : '下一站去哪儿？';
+  $('route-kicker').hidden = Boolean(game.outcome);
+  $('route-list').replaceChildren(...options.map(id => {
+    const place = places[id];
+    const trip = estimate(level, game.position, id, step, game.wallet, selected === id && useRope);
+    const button = document.createElement('button');
+    button.id = 'route-' + id;
+    button.type = 'button';
+    button.className = 'route';
+    button.setAttribute('aria-pressed', String(selected === id));
+    const gains = [trip.reward && '到账 +' + money(trip.reward), place.gems && '宝石 +' + place.gems].filter(Boolean);
+    const next = Object.keys(pathsByPlace[id]).map(destination => places[destination].name);
+    const connections = next.length ? '可去 ' + next.join('、') : '探险终点';
+    button.innerHTML = '<span class="route-icon" aria-hidden="true">' + place.icon + '</span><span class="route-content"><strong>' + place.name + '</strong><small>' + (gains.join(' · ') || '打开宝箱') + '</small><small>' + connections + '</small></span><span class="route-check" aria-hidden="true">✓</span>';
+    const parts = fareParts(trip.charges);
+    if (level.deadline) {
+      const duration = document.createElement('span');
+      duration.className = 'fare-part time';
+      duration.textContent = '走 ' + routeHours[id] + ' 小时';
+      parts.append(duration);
+    }
+    button.append(parts);
+    button.addEventListener('click', () => selectPlace(id, 'route'));
+    return button;
+  }));
+  const place = places[selected];
+  $('gear').hidden = !game.rope || Boolean(game.outcome);
+  $('use-rope').disabled = !place?.rocky;
+  const ropeSaving = place?.rocky && estimate(level, game.position, selected, step, game.wallet, true).saving;
+  $('gear-text').textContent = ropeSaving ? '用绳索省 ' + money(ropeSaving) + '（仅一次）' : '🪢 绳索剩 1 根，岩地可用';
+  const button = $('travel');
+  button.disabled = !game.outcome && !place;
+  button.textContent = game.outcome ? '查看探险结果' : place ? '去' + place.name + '的收费站 →' : '先选一条路线';
+}
+
+function showLevels() {
+  $('levels').replaceChildren(...chapters.map((chapter, index) => {
+    const section = document.createElement('section');
+    section.className = 'level-chapter';
+    const title = document.createElement('h3');
+    title.textContent = chapter;
+    const grid = document.createElement('div');
+    grid.className = 'level-grid';
+    const first = index * 4;
+    levels.slice(first, first + 4).forEach((level, offset) => {
+      const number = first + offset + 1;
+      const button = document.createElement('button');
+      button.className = 'level';
+      button.type = 'button';
+      button.textContent = '第 ' + number + ' 关';
+      const status = document.createElement('span');
+      status.textContent = completed.has(number) ? '✓ 已通关' : number === game.level ? '当前关卡' : level.name;
+      button.append(status);
+      if (number === game.level) button.setAttribute('aria-current', 'true');
+      button.addEventListener('click', () => {
+        $('level-dialog').close();
+        if (number !== game.level) requestStart(number);
+      });
+      grid.append(button);
+    });
+    section.append(title, grid);
+    return section;
+  }));
+  $('level-dialog').showModal();
+}
+
+const wideCoast = [
+  [-30, 264], [26, 221], [64, 181], [115, 156], [137, 123], [194, 119], [220, 86],
+  [280, 78], [321, 95], [359, 72], [423, 87], [477, 91], [513, 115], [557, 105],
+  [608, 78], [658, 86], [689, 113], [729, 113], [763, 142], [791, 158], [838, 171],
+  [890, 220], [859, 266], [831, 283], [808, 324], [767, 350], [732, 347],
+  [694, 385], [652, 404], [609, 394], [578, 430], [528, 416], [477, 432], [426, 411],
+  [390, 433], [344, 429], [300, 403], [253, 416], [204, 393], [162, 374], [131, 340],
+  [89, 329], [57, 303], [17, 293]
+];
+const compactCoast = [
+  [124, 297], [82, 285], [43, 251], [29, 221], [50, 200], [24, 166], [38, 133],
+  [22, 112], [47, 85], [44, 52], [71, 30], [113, 29], [147, 8], [204, 8],
+  [235, 19], [275, 24], [300, 44], [319, 74], [311, 105], [334, 137], [316, 166],
+  [330, 194], [314, 223], [319, 249], [286, 268], [246, 273], [229, 298], [192, 329], [156, 320]
+];
+const compactMap = matchMedia('(max-width: 560px)');
+let artKey = '';
+
+function getBoard() {
+  return compactMap.matches
+    ? { width: 360, height: 331, position: 'compact', coast: compactCoast }
+    : { width: 900, height: 504, position: 'wide', coast: wideCoast };
+}
+
+function canvasContext(canvas, board) {
+  const size = $('map').getBoundingClientRect();
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  const width = Math.max(1, Math.round(size.width * scale));
+  const height = Math.max(1, Math.round(size.height * scale));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(width / board.width, 0, 0, height / board.height, 0, 0);
+  return ctx;
+}
+
+function smoothContour(ctx, points) {
+  const last = points[points.length - 1];
+  ctx.beginPath();
+  ctx.moveTo((last[0] + points[0][0]) / 2, (last[1] + points[0][1]) / 2);
+  points.forEach(([x, y], index) => {
+    const next = points[(index + 1) % points.length];
+    ctx.quadraticCurveTo(x, y, (x + next[0]) / 2, (y + next[1]) / 2);
+  });
+  ctx.closePath();
+}
+
+function ellipse(ctx, x, y, rx, ry, fill, rotation = 0) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, rotation, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function pine(ctx, x, y, height, variation) {
+  ellipse(ctx, x + height * .17, y + 1, height * .39, height * .15, '#365d433a', -.18);
+  ctx.fillStyle = '#73513a';
+  ctx.fillRect(x - height * .065, y - height * .23, height * .13, height * .24);
+  const colors = variation ? ['#2d6951', '#3e8560', '#64a66c'] : ['#397957', '#539460', '#78ac68'];
+  colors.forEach((color, index) => {
+    const top = y - height * (.63 + index * .18);
+    const side = height * (.37 - index * .069);
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.quadraticCurveTo(x + side * .5, top + height * .31, x + side, top + height * .45);
+    ctx.quadraticCurveTo(x + 2, top + height * .64, x - side, top + height * .45);
+    ctx.quadraticCurveTo(x - side * .48, top + height * .28, x, top);
+    ctx.fillStyle = color;
+    ctx.fill();
+  });
+}
+
+function drawMountains(ctx, x, y, size) {
+  const peaks = [[-.62, .61], [.42, .68], [0, 1]];
+  for (const [offset, scale] of peaks) {
+    const peak = x + size * offset;
+    const height = size * scale;
+    ctx.beginPath();
+    ctx.moveTo(peak - height * .65, y);
+    ctx.lineTo(peak, y - height);
+    ctx.lineTo(peak + height * .72, y);
+    ctx.closePath();
+    ctx.fillStyle = '#6a8577';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(peak, y - height);
+    ctx.lineTo(peak + height * .72, y);
+    ctx.lineTo(peak + height * .07, y);
+    ctx.closePath();
+    ctx.fillStyle = '#506d65';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(peak, y - height);
+    ctx.lineTo(peak - height * .25, y - height * .61);
+    ctx.lineTo(peak, y - height * .69);
+    ctx.lineTo(peak + height * .11, y - height * .59);
+    ctx.lineTo(peak + height * .26, y - height * .64);
+    ctx.closePath();
+    ctx.fillStyle = '#ecebc9';
+    ctx.fill();
+  }
+}
+
+function drawIsland(board) {
+  const ctx = canvasContext($('island'), board);
+  const { width, height, coast, position } = board;
+  const compact = position === 'compact';
+  const grid = compact ? .65 : 1;
+  let seed = 51;
+  function random() {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  }
+  const water = ctx.createLinearGradient(0, 0, width, height);
+  water.addColorStop(0, '#9fd6c8');
+  water.addColorStop(.55, '#71bab6');
+  water.addColorStop(1, '#57a5ac');
+  ctx.fillStyle = water;
+  ctx.fillRect(0, 0, width, height);
+  for (let index = 0; index < (compact ? 280 : 415); index++) {
+    const x = random() * width;
+    const y = random() * height;
+    const len = (3 + random() * 14) * grid;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.quadraticCurveTo(x + len * .48, y + (index % 2 ? 2 : -2), x + len, y);
+    ctx.strokeStyle = index % 3 ? '#e4f2d738' : '#2a7e8d2f';
+    ctx.lineWidth = grid;
+    ctx.stroke();
+  }
+  smoothContour(ctx, coast);
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 33 * grid;
+  ctx.strokeStyle = '#b3e4cc67';
+  ctx.stroke();
+  ctx.lineWidth = 18 * grid;
+  ctx.strokeStyle = '#dbf0d3a0';
+  ctx.stroke();
+  ctx.lineWidth = 9 * grid;
+  ctx.strokeStyle = '#f9e0a1';
+  ctx.stroke();
+  const ground = ctx.createLinearGradient(0, 0, width * .28, height);
+  ground.addColorStop(0, '#c1ca7c');
+  ground.addColorStop(.44, '#a9ba65');
+  ground.addColorStop(1, '#89a759');
+  ctx.fillStyle = ground;
+  ctx.fill();
+
+  ctx.save();
+  ctx.clip();
+  for (let index = 0; index < 115; index++) {
+    const x = random() * width;
+    const y = random() * height;
+    ellipse(ctx, x, y, (8 + random() * 57) * grid, (4 + random() * 18) * grid, index % 3 ? '#dbd38726' : '#477d5322', -.33);
+  }
+  for (let index = 0; index < 1400; index++) {
+    const x = random() * width;
+    const y = random() * height;
+    ctx.fillStyle = index % 3 ? '#f8ebb64a' : '#416b4d38';
+    ctx.fillRect(x, y, 1.5 * grid, 1.7 * grid);
+  }
+  const ranges = compact ? [[145, 145, 43], [222, 100, 46], [50, 104, 37]] : [[343, 118, 81], [590, 126, 85], [755, 156, 79]];
+  for (const [x, y, size] of ranges) drawMountains(ctx, x, y, size);
+  const woods = compact
+    ? [[66, 237, 33, 15], [297, 229, 34, 17], [160, 226, 31, 24], [221, 186, 23, 10], [145, 88, 24, 17], [277, 115, 29, 19]]
+    : [[162, 177, 56, 36], [245, 114, 53, 19], [298, 329, 64, 56], [424, 325, 34, 30], [473, 181, 46, 42], [598, 347, 80, 46], [758, 275, 42, 37]];
+  const trees = [];
+  for (const [centerX, centerY, spreadX, spreadY] of woods) {
+    const count = compact ? 7 : 11;
+    for (let index = 0; index < count; index++) {
+      trees.push([
+        centerX + (random() - .5) * spreadX * 2,
+        centerY + (random() - .5) * spreadY * 2,
+        (14 + random() * 24) * grid,
+        index % 2
+      ]);
+    }
+  }
+  trees.sort((first, second) => first[1] - second[1]);
+  for (const [x, y, height, variation] of trees) pine(ctx, x, y, height, variation);
+
+  const [springX, springY] = places.spring[position];
+  ellipse(ctx, springX + 17 * grid, springY - 9 * grid, 36 * grid, 24 * grid, '#d9d492', -.23);
+  ellipse(ctx, springX + 17 * grid, springY - 9 * grid, 31 * grid, 19 * grid, '#63a9a1', -.23);
+  ellipse(ctx, springX + 15 * grid, springY - 11 * grid, 24 * grid, 12 * grid, '#9ad1bb', -.24);
+  ctx.restore();
+
+  const compassX = compact ? width - 28 : width - 55;
+  const compassY = compact ? 37 : 57;
+  ctx.save();
+  ctx.translate(compassX, compassY);
+  ctx.scale(grid, grid);
+  ctx.beginPath();
+  ctx.arc(0, 0, 22, 0, Math.PI * 2);
+  ctx.strokeStyle = '#285c5a89';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -26);
+  ctx.lineTo(4, -4);
+  ctx.lineTo(19, 0);
+  ctx.lineTo(4, 4);
+  ctx.lineTo(0, 24);
+  ctx.lineTo(-4, 4);
+  ctx.lineTo(-19, 0);
+  ctx.lineTo(-4, -4);
+  ctx.closePath();
+  ctx.fillStyle = '#f8eed1';
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawTrails(board) {
+  const ctx = canvasContext($('paths'), board);
+  const compact = board.position === 'compact';
+  ctx.clearRect(0, 0, board.width, board.height);
+  ctx.lineCap = 'round';
+  const edges = Object.entries(pathsByPlace).flatMap(([from, routes]) => Object.keys(routes).map(to => {
+    const order = game.visited.indexOf(from);
+    const done = order >= 0 && game.visited[order + 1] === to;
+    const next = !game.outcome && from === game.position;
+    return { from, to, done, next, active: next && selected === to };
+  }));
+  const priority = edge => Number(edge.done) + Number(edge.next) * 2 + Number(edge.active) * 4;
+  for (const edge of edges.sort((first, second) => priority(first) - priority(second))) {
+    const [x1, y1] = places[edge.from][board.position];
+    const [x2, y2] = places[edge.to][board.position];
+    const bend = compact ? Math.abs(x2 - x1) * .1 : Math.abs(y1 - y2) * .12;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.quadraticCurveTo((x1 + x2) / 2 + (compact ? bend : 0), (y1 + y2) / 2 - (compact ? 0 : bend), x2, y2);
+    ctx.setLineDash([]);
+    ctx.strokeStyle = edge.active ? '#6a4919' : edge.next ? '#755529b0' : edge.done ? '#f6edb4' : '#b7ae705c';
+    ctx.lineWidth = edge.active || edge.next || edge.done ? 7 : 3.6;
+    ctx.stroke();
+    ctx.strokeStyle = edge.active ? '#ffe991' : edge.next ? '#fff0b4' : edge.done ? '#266853' : '#f5e5ac9e';
+    ctx.lineWidth = edge.active ? 4 : edge.next || edge.done ? 3.4 : 1.7;
+    ctx.setLineDash(edge.done || edge.active ? [] : compact ? [4, 5] : [6, 7]);
+    ctx.stroke();
+  }
+}
+
+function renderMap() {
+  const board = getBoard();
+  const size = $('map').getBoundingClientRect();
+  const key = [board.position, size.width, size.height, window.devicePixelRatio].join(':');
+  if (artKey !== key) {
+    drawIsland(board);
+    artKey = key;
+  }
+  drawTrails(board);
+  const available = game.outcome ? {} : pathsByPlace[game.position];
+  const nodes = Object.entries(places).map(([id, place]) => {
+    const isCurrent = id === game.position;
+    const isNext = Object.hasOwn(available, id);
+    const wasVisited = game.visited.includes(id);
+    const node = document.createElement(isNext ? 'button' : 'div');
+    node.id = 'node-' + id;
+    node.className = 'node ' + (isCurrent ? 'current' : isNext ? 'next' : wasVisited ? 'visited' : 'locked');
+    if (id === selected) node.classList.add('chosen');
+    if (id === lastArrival) node.classList.add('awake');
+    const [x, y] = place[board.position];
+    node.style.left = x / board.width * 100 + '%';
+    node.style.top = y / board.height * 100 + '%';
+    node.innerHTML = '<span class="node-icon" aria-hidden="true">' + place.icon + '</span><span class="node-label">' + place.name + '</span>';
+    if (isCurrent) {
+      const flag = document.createElement('span');
+      flag.className = 'node-flag';
+      flag.textContent = '队长';
+      node.append(flag);
+    }
+    if (isNext) {
+      node.type = 'button';
+      node.setAttribute('aria-pressed', String(id === selected));
+      node.addEventListener('click', () => selectPlace(id, 'board'));
+    }
+    return node;
+  });
+  $('nodes').replaceChildren(...nodes);
+}
+
+function requestStart(level) {
+  if (game.journal.length && !game.outcome) {
+    pendingLevel = level;
+    $('restart-dialog').returnValue = '';
+    $('restart-dialog').showModal();
+  } else start(level);
+}
+
+$('restart-dialog').addEventListener('close', () => {
+  if ($('restart-dialog').returnValue === 'restart' && pendingLevel) start(pendingLevel);
+  pendingLevel = null;
+});
+$('help').addEventListener('click', () => $('help-dialog').showModal());
+$('choose-level').addEventListener('click', showLevels);
+$('reset').addEventListener('click', () => requestStart(game.level));
+$('travel').addEventListener('click', travel);
+$('use-rope').addEventListener('change', renderRoutes);
+$('payment-dialog').addEventListener('close', () => {
+  if (!$('payment-dialog').open) payment = null;
+  updateSoundScene();
+});
+$('payment-back').addEventListener('click', () => $('payment-dialog').close());
+$('payment-help').addEventListener('click', () => {
+  const hint = $('payment-hint');
+  hint.hidden = !hint.hidden;
+  $('payment-help').setAttribute('aria-expanded', String(!hint.hidden));
+});
+$('payment-form').addEventListener('submit', confirmPayment);
+$('payment-undo').addEventListener('click', () => {
+  payment.tender.pop();
+  $('payment-message').textContent = '';
+  renderTender();
+  $('tray-announcement').textContent = '已撤销上一次放入的钱币。';
+  if (!payment.tender.length) $('money-rack').querySelector('button')?.focus();
+});
+$('payment-clear').addEventListener('click', () => {
+  payment.tender.length = 0;
+  $('payment-message').textContent = '';
+  renderTender();
+  $('tray-announcement').textContent = '托盘已清空。';
+  $('money-rack').querySelector('button')?.focus();
+});
+$('review').addEventListener('click', () => {
+  $('result-dialog').close();
+  $('journal-list').closest('details').open = true;
+  $('journal-list').closest('details').querySelector('summary').focus();
+});
+$('replan').addEventListener('click', replanRoute);
+$('retry').addEventListener('click', () => {
+  $('result-dialog').close();
+  start(game.level);
+  $('route-list').querySelector('button')?.focus({ preventScroll: true });
+});
+$('next-level').addEventListener('click', () => {
+  $('result-dialog').close();
+  start(game.level + 1);
+  $('choose-level').focus({ preventScroll: true });
+});
+const firstUnfinished = levels.findIndex((level, index) => !completed.has(index + 1));
+start(firstUnfinished < 0 ? 1 : firstUnfinished + 1);
+if ('ResizeObserver' in window) {
+  new ResizeObserver(renderMap).observe($('map'));
+} else {
+  window.addEventListener('resize', renderMap);
+}
+</script>
+</body>
+</html>
